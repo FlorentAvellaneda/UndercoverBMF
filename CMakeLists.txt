@@ -24,8 +24,8 @@ set(externLibs
 )
 
 add_definitions(-DNDEBUG)
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -O3")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -O3 -static -lrt -pthread -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -O3")
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -O3 -static -lrt -pthread -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -O0 -g")
 
 
