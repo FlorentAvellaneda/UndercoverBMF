@@ -8,9 +8,10 @@ The source code is designed to be compiled and executed on GNU/Linux.
 ## Dependencies
 
 ### Not included
-- g++
-- cmake
+- g++ (`sudo apt install g++` on Ubuntu)
+- cmake (`sudo apt install cmake` on Ubuntu)
 - python3 (optional: to check the solutions with an external program)
+- boost (`sudo apt install libboost-dev` on Ubuntu)
 
 ### Included
 - glucose : https://www.labri.fr/perso/lsimon/glucose/
