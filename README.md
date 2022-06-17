@@ -1,6 +1,6 @@
 # UndercoverBMF
 
-Paper link : http://florent.avellaneda.free.fr/dl/AAAI22.pdf
+Paper link : [https://www.aaai.org/AAAI22Papers/AAAI-6327.AvellanedaF.pdf](https://www.aaai.org/AAAI22Papers/AAAI-6327.AvellanedaF.pdf)
 
 The source code is designed to be compiled and executed on GNU/Linux.
 
