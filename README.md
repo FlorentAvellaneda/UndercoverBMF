@@ -38,12 +38,14 @@ make
   `--noBS`                *Disable Break Symmetry*  
   `--seed UINT`            *Seed (0 means random seed)*  
   `--OptiBlock`            *Activate the OptiBlock strategy*  
+  `--BMF`                       *Remove the undercover constraint to infer a BMF*
   `--noFastUndercover`    *Disable the FastUndercover strategy*  
   `-k UINT`                *k (default = 1)*  
   `--optimal`            *Search for an optimal k undercover*  
   `--obs FLOAT`            *Observate data (default: 1.0)*  
   `--IG TEXT`            *Save input in a graph file*  
-  `--IDAT TEXT`            *Save input in a dat file*  
+  `--IDAT TEXT`            *Save input in a dat file*
+  `--CSV TEXT`                  *Save input in a CSV matrix file*
   `-v UINT`                *Vebosity (default: 1)*  
 
 **Subcommands:**  
@@ -52,28 +54,28 @@ make
 
 ### subcommand fromFile
 
-    **Usage:**  `./inferbmf fromFile [OPTIONS] CSV_file`  
+    **Usage:**  `./inferbmf fromFile [OPTIONS] CSV_file`  
 
-    **Positionals:**  
-      CSV_file TEXT:FILE REQUIRED CSV file  
+    **Positionals:**  
+      CSV_file TEXT:FILE REQUIRED CSV file  
 
-    **Options:**  
-      `-h,--help`                    *Print this help message and exit*  
-      `--adj`                           *Read the input file as an adjacency list*  
-      `-o TEXT`                      *output file for A and B*  
-      `-O TEXT`                     *output file for A o B*  
+    **Options:**  
+      `-h,--help`                    *Print this help message and exit*  
+      `--adj`                           *Read the input file as an adjacency list*  
+      `-o TEXT`                      *output file for A and B*  
+      `-O TEXT`                     *output file for A o B*  
 
 ### subcommand fromRdme
 
-    **Usage:** `./inferbmf fromRdm [OPTIONS]`  
+    **Usage:** `./inferbmf fromRdm [OPTIONS]`  
 
-    **Options:**  
-      `-h,--help`                   *Print this help message and exit*  
-      `-k UINT`                     *Rank (default: no rank)*  
-      `-d FLOAT`                  *Density (default: 0.1)*  
-      `-U UINT`                    *Number of line (default: size)*  
-      `-V UINT`                     *Number of column (default: size)*  
-      `--size UINT`               *Size (default: 100)*   
+    **Options:**  
+      `-h,--help`                   *Print this help message and exit*  
+      `-k UINT`                     *Rank (default: no rank)*  
+      `-d FLOAT`                  *Density (default: 0.1)*  
+      `-U UINT`                    *Number of line (default: size)*  
+      `-V UINT`                     *Number of column (default: size)*  
+      `--size UINT`               *Size (default: 100)*
 
 ## Examples
 
@@ -116,6 +118,16 @@ Search for a block-optimal 50-undercover with a FastUndercover initialisation an
 Verify the solution with an external tool:
 
 `python3 verif.py result.A.csv result.B.csv data/iris.csv`
+
+
+### BMF
+Search for a block-optimal 2-undercover with a FastUndercover initialisation, localy optimize without the undercover constraint and save the solution in result.A.csv and result.B.csv:
+`./inferbmf -k 2 --OptiBlock --BMF fromFile -o result data/breast.csv`
+
+Verify the solution with an external tool:
+
+`python3 verif.py result.A.csv result.B.csv data/breast.csv`
+
 
 ## Benchmark Result
 

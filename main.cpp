@@ -889,6 +889,48 @@ MaMatriceADJ generateRdmMatrix(unsigned int U, unsigned int V, double dencity, u
     return M;
 }
 
+
+unsigned int calculerCost(const vector< vector<bool> > &A, const vector< vector<bool> > &B, const MaMatriceADJ& M) {
+    //if(verbosity >= 1)
+    //    std::cout << "k = " << B.size() << std::endl;
+
+    unsigned int okOnOne = 0;
+    unsigned int okOnZero = 0;
+    unsigned int errOnOne=0;
+    unsigned int errOnZero=0;
+    assert(B.size());
+
+    for(unsigned int i=0; i<A.size(); i++) {
+        for(unsigned int j=0; j<B[0].size(); j++) {
+
+            if(M.get(i,j).has_value()) {
+
+                bool value = false;
+                for(unsigned int k=0; k<B.size(); k++) {
+                    if( A[i][k] && B[k][j]) {
+                        value = true;
+                    }
+                }
+
+                if(M.get(i,j).value() == value) {
+                    if(M.get(i,j).value())
+                        okOnOne++;
+                    else
+                        okOnZero++;
+                } else {
+                    if(M.get(i,j).value())
+                        errOnOne++;
+                    else
+                        errOnZero++;
+                }
+            }
+
+        }
+    }
+
+    return errOnOne+errOnZero;
+}
+
 unsigned int verif(const vector< vector<bool> > &A, const vector< vector<bool> > &B, const MaMatriceADJ& M) {
     if(verbosity >= 1)
         std::cout << "k = " << B.size() << std::endl;
@@ -928,9 +970,11 @@ unsigned int verif(const vector< vector<bool> > &A, const vector< vector<bool> >
     }
 
     if(verbosity >= 1) {
+        std::cout << "okOnZero: " << okOnZero << std::endl;
         std::cout << "okOnOne: " << okOnOne << std::endl;
         std::cout << "errOnZero: " << errOnZero << std::endl;
         std::cout << "errOnOne: " << errOnOne << std::endl;
+        std::cout << "acc: " << (double)(okOnOne+okOnZero)/(double)(errOnOne+errOnZero+okOnOne+okOnZero) << std::endl;
     }
     assert(errOnZero == 0);
 
@@ -1307,6 +1351,91 @@ void exportToDAT(const MaMatriceADJ &M, const std::string &inputFile) {
 }
 
 
+void ALT_optimisation(std::vector<std::vector<bool>> &A, std::vector<std::vector<bool>> &B, const MaMatriceADJ &M) {
+    assert(A.size());
+    assert(B.size());
+    assert(A[0].size() == B.size());
+    assert(M.m() == A.size());
+    assert(M.n() == B[0].size());
+    unsigned int k = B.size();
+    unsigned int cost = calculerCost(A, B, M);
+    unsigned int newCost=cost;
+
+
+    do {
+        cost = newCost;
+        newCost = 0;
+        for(unsigned int i=0; i<A.size(); i++) {
+            EvalMaxSAT solver;
+            std::vector<int> var;
+            for(unsigned int l=0; l<k; l++) {
+                var.push_back(solver.newVar());
+            }
+
+            for(unsigned int j: M.OneOnLine(i)) {
+                std::vector<int> clause;
+                for(unsigned int l=0; l<k; l++) {
+                    if(B[l][j]) {
+                        clause.push_back( var[l] );
+                    }
+                }
+                solver.addWeightedClause(clause, 1);
+            }
+
+            for(unsigned int j: M.ZeroOnLine(i)) {
+                int X= solver.newSoftVar(true, true, 1);
+                for(unsigned int l=0; l<k; l++) {
+                    if(B[l][j]) {
+                        solver.addClause({-X, -var[l]});
+                    }
+                }
+            }
+            solver.solve();
+            newCost += solver.getCost();
+
+            for(unsigned int l=0;l<k;l++) {
+                A[i][l] = solver.getValue(var[l]);
+            }
+        }
+
+        newCost = 0;
+
+        for(unsigned int j=0; j<M.n(); j++) {
+            EvalMaxSAT solver;
+            std::vector<int> var;
+            for(unsigned int l=0; l<k; l++) {
+                var.push_back(solver.newVar());
+            }
+
+            for(unsigned int i: M.OneOnCol(j)) {
+                std::vector<int> clause;
+                for(unsigned int l=0; l<k; l++) {
+                    if(A[i][l]) {
+                        clause.push_back( var[l] );
+                    }
+                }
+                solver.addWeightedClause(clause, 1);
+            }
+
+
+            for(unsigned int i: M.ZeroOnCol(j)) {
+                int X= solver.newSoftVar(true, true, 1);
+                for(unsigned int l=0; l<k; l++) {
+                    if(A[i][l]) {
+                        solver.addClause({-X, -var[l]});
+                    }
+                }
+            }
+            solver.solve();
+            newCost += solver.getCost();
+
+            for(unsigned int l=0;l<k;l++) {
+                B[l][j] = solver.getValue(var[l]);
+            }
+        }
+    } while( newCost < cost );
+}
+
 MaLib::Chrono C_TOTAL;
 int main(int argc, char *argv[]) {
 
@@ -1327,6 +1456,10 @@ int main(int argc, char *argv[]) {
     bool optiblock=false;
     app.add_flag("--OptiBlock", optiblock, "Activate the OptiBlock strategy");
 
+    bool BMF=false;
+    app.add_flag("--BMF", BMF, "Remove the undercover constraint to infer a BMF");
+
+
     bool noFastUndercover=false;
     app.add_flag("--noFastUndercover", noFastUndercover, "Unactivate the FastUndercover strategy");
 
@@ -1344,6 +1477,9 @@ int main(int argc, char *argv[]) {
 
     std::string inputFileDAT = "";
     app.add_option("--IDAT", inputFileDAT, "save input in a dat file");
+
+    std::string inputCSV = "";
+    app.add_option("--CSV", inputCSV, "save input in a CSV matrix file");
 
     app.add_option("-v", verbosity, "vebosity (default: 1)");
 
@@ -1463,6 +1599,9 @@ int main(int argc, char *argv[]) {
     if(inputFileDAT.size()) {
         exportToDAT(M, inputFileDAT);
     }
+    if(inputCSV.size()) {
+        exportToCSV(M, inputFileDAT);
+    }
 
     unsigned int nbIt=1;
     if(optimalStrategy) {
@@ -1494,8 +1633,23 @@ int main(int argc, char *argv[]) {
 
     auto [A, B] = inferer(M, k, nbIt, !noFastUndercover, optiblock);
 
+
     unsigned int numberError = verif(A, B, Minit); // Check that the solution is an undercover and count the number of reconstruction errors made by A o B on Minit
 
+    if(BMF) {
+        std::cout << "Remove the undercover constraint and localy optimize to infer a BMF" << std::endl;
+    
+        ALT_optimisation(A, B, M);
+        numberError = calculerCost(A, B, Minit);
+
+        if(verbosity != 0) {
+            std::cout << "Erreur (acc) sur Init  = " << calculerCost(A, B, Moracle) << "(acc: "<<(Moracle.numberOfOne()+Moracle.numberOfZero()-calculerCost(A, B, Moracle))/(double)(Moracle.numberOfOne()+Moracle.numberOfZero())<<")" << std::endl;
+            std::cout << "Erreur (acc) sur Train  = " << calculerCost(A, B, Minit) << "(acc: "<<(Minit.numberOfOne()+Minit.numberOfZero()-calculerCost(A, B, Minit))/(double)(Minit.numberOfOne()+Minit.numberOfZero())<<")" << std::endl;
+            std::cout << "Erreur (acc) sur Test  = " << calculerCost(A, B, Mremoved) << "(acc: "<<(Mremoved.numberOfOne()+Mremoved.numberOfZero()-calculerCost(A, B, Mremoved))/(double)(Mremoved.numberOfOne()+Mremoved.numberOfZero())<<")" << std::endl;
+        }
+    }
+    
+    
     if(verbosity == 0) {
         std::cout << file << "\t" << k*nbIt << "\t" << numberError << "\t" << C_TOTAL.tac()/1000000.0 << std::endl;
     }
@@ -1518,7 +1672,6 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
 
 
 
